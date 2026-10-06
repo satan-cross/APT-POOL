@@ -793,6 +793,9 @@ components:
           format: date-time
         answer:
           type: string
+        mnemonic:
+          type: string
+          description: Fresh BIP39 phrase generated for this demo response only; never included in shared accepted workload reports.
         details:
           type: array
           items:

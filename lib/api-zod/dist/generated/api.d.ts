@@ -974,6 +974,7 @@ export declare const RunCommandCenterDemoResponse: zod.ZodObject<{
     startedAt: zod.ZodDate;
     finishedAt: zod.ZodDate;
     answer: zod.ZodString;
+    mnemonic: zod.ZodOptional<zod.ZodString>;
     details: zod.ZodArray<zod.ZodObject<{
         label: zod.ZodString;
         value: zod.ZodString;
@@ -1156,6 +1157,7 @@ export declare const RunCommandCenterDemoResponse: zod.ZodObject<{
         lastHash: string;
         lastMiner: string;
     };
+    mnemonic?: string | undefined;
     dnsSerial?: number | undefined;
     dnsTarget?: string | undefined;
     dnsRedirect?: {
@@ -1217,6 +1219,7 @@ export declare const RunCommandCenterDemoResponse: zod.ZodObject<{
         lastHash: string;
         lastMiner: string;
     };
+    mnemonic?: string | undefined;
     dnsSerial?: number | undefined;
     dnsTarget?: string | undefined;
     dnsRedirect?: {

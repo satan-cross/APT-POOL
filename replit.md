@@ -48,7 +48,7 @@ ARGUS is a live defensive security workload command center with verifiable proof
 - Proof submissions are checked against the issued job range and a hash prefix before a block is appended to the in-memory ledger.
 - Dashboard percentages, rates, miner counts, job counts, hashes, and ledger rows come from live TCP miner connections and accepted shares; there are no timer-generated mining counters.
 - Hash counts are derived from the validated nonce span for each accepted share, with per-workload and aggregate hashes-per-second telemetry; accepted proof counts remain separate from attempted hashes.
-- The miner difficulty is four leading hexadecimal zeroes (`0000`) with a bounded one-million-nonce job range; BIP39 demos generate fresh 128-bit entropy instead of showing a fixed mnemonic.
+- The miner difficulty is four leading hexadecimal zeroes (`0000`) with a bounded one-million-nonce job range; BIP39 demos generate a fresh 12- or 24-word phrase, derive its seed, and show the phrase only in the no-store demo response. These lab phrases are not wallet credentials and must not be used for funds or shared.
 - Home difficulty and miner-count defaults are stored in the `command_center_settings` development database table and loaded before the API starts; the Home production preset uses `0000` and worker count is bounded to 1–16.
 - Legacy mining demonstrations wait for a fresh accepted share. Supplied public-key assessments instead complete from their named parser/validator with artifact-bound evidence; completion is not private-key recovery. DNS demos query the local UDP listener, make a local request to the resolved target, and the migration action only permits loopback lab addresses.
 

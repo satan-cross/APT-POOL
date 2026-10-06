@@ -48,8 +48,10 @@ async function runLocalWorkload(
   input: { publicKeyArtifact?: string; dnsPlaneInstance?: LocalDnsPlane } = {},
 ): Promise<SafeWorkloadResult> {
   switch (workload.executor) {
-    case "mnemonic-fixture":
-      return runMnemonicFixture();
+    case "mnemonic-fixture": {
+      const fixture = runMnemonicFixture();
+      return complete(fixture.answer, fixture.details, fixture.evidence);
+    }
     case "public-key-validator":
       return validatePublicKeyArtifact(input.publicKeyArtifact);
     case "rce-sink-review": {

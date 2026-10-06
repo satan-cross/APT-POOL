@@ -140,6 +140,7 @@ export function createCommandCenterRouter(
         res.status(403).json({ error: "Cross-origin public-key workload requests are not permitted" });
         return;
       }
+      if (workloadId === "w-01") res.set("Cache-Control", "no-store");
       res.json(RunCommandCenterDemoResponse.parse(
          await handlers.runDemo(workloadId, difficulty, undefined, undefined, publicKeyArtifact, mnemonicWords),
       ));

@@ -8,7 +8,7 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/lib/protocol.test.ts ../artifacts/api-server/src/lib/exploit-detector.test.ts ../artifacts/api-server/src/lib/safe-workload-runner.test.ts ../artifacts/api-server/src/lib/task-orders.test.ts ../artifacts/api-server/src/lib/workload-contract.test.ts"
+    "test": "pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/lib/protocol.test.ts ../artifacts/api-server/src/lib/exploit-detector.test.ts ../artifacts/api-server/src/lib/mnemonic-fixture.test.ts ../artifacts/api-server/src/lib/safe-workload-runner.test.ts ../artifacts/api-server/src/lib/task-orders.test.ts ../artifacts/api-server/src/lib/workload-contract.test.ts"
   },
   "dependencies": {
     "@scure/bip39": "^2.4.0",
