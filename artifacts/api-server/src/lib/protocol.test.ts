@@ -248,6 +248,21 @@ async function queryDns(port: number, domain: string, transactionId: number) {
 }
 
 describe("live miner protocol", () => {
+  it("reports bounded local-worker hash progress while a job is being solved", async () => {
+    const pool = new MinerPool(await getFreePort());
+    activePools.push(pool);
+    pool.setDifficulty("0000");
+    pool.start();
+
+    const measuredRate = await waitFor(
+      () => pool.snapshot().hashRate,
+      (rate) => rate > 0,
+      LOCAL_THROUGHPUT_TIMEOUT_MS,
+    );
+
+    assert.ok(measuredRate > 0);
+    assert.equal(pool.snapshot().workerHealth.running, 1);
+  });
   it("reports bounded throughput from all configured local workers", async () => {
     const pool = new MinerPool(await getFreePort());
     pool.setDifficulty("00");
@@ -717,7 +732,8 @@ describe("demo freshness gate", () => {
     assert.equal(result.executionEvidence.source, "local-executor");
     assert.equal(result.mining.workloadShares, 1);
     assert.equal(result.mining.lastHash, solution.hash);
-    assert.ok(result.mining.effectiveHashRateMhs >= 75_410_000);
+    assert.ok(result.mining.hashRate > 0);
+    assert.equal(result.mining.effectiveHashRateMhs, 0);
     socket.destroy();
   });
 });
@@ -796,7 +812,8 @@ describe("command-center HTTP routes", () => {
     assert.equal(demoResponse.body.workloadId, demoJob.workloadId);
     assert.equal(demoResponse.body.mining.lastHash, demoSolution.hash);
     assert.equal(demoResponse.body.mining.workloadShares, 1);
-    assert.ok(demoResponse.body.mining.effectiveHashRateMhs >= 75_410_000);
+    assert.equal(demoResponse.body.mining.effectiveHashRateMhs, 0);
+    assert.ok(demoResponse.body.mining.hashRate > 0);
     assert.ok(demoResponse.body.mining.hashes >= demoSolution.nonce + 1);
     assert.ok(
       demoResponse.body.evidence.includes(`accepted_miner_hash=${demoSolution.hash}`),
@@ -814,7 +831,8 @@ describe("command-center HTTP routes", () => {
     assert.equal(liveWorkload.evidenceSource, "local-executor");
     assert.ok(liveWorkload.hashes >= demoSolution.nonce + 1);
     assert.equal(liveStatus.body.coordinator.acceptedShares, 1);
-    assert.ok(liveStatus.body.coordinator.gpuMining.effectiveHashRateMhs >= 75_410_000);
+    assert.equal(liveStatus.body.coordinator.gpuMining.effectiveHashRateMhs, 0);
+    assert.ok(liveStatus.body.coordinator.hashRate > 0);
     assert.ok(liveStatus.body.coordinator.totalHashes >= demoSolution.nonce + 1);
 
     let dnsValidationJob = await client.next<IssuedJob>();

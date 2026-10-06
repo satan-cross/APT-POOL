@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { getWorkload } from "./workload-catalog";
 import { getTaskOrderCatalog, quoteTaskOrder } from "./task-orders";
 
 test("task-order catalog separates safe local tasks from blocked categories", () => {
@@ -24,7 +25,17 @@ test("task-order catalog separates safe local tasks from blocked categories", ()
     catalog.tasks.find((task) => task.id === "tls_configuration_audit")?.status,
     "available",
   );
+  assert.equal(
+    catalog.tasks.find((task) => task.id === "dns_redirect_integrity_review")?.status,
+    "available",
+  );
   assert.ok(catalog.tasks.every((task) => task.authorizationBoundary === "loopback-only"));
+  for (const task of available) {
+    const workload = getWorkload(task.sourceWorkloadId);
+    assert.ok(workload, `${task.id} should map to a catalog workload`);
+    assert.equal(workload.executor, task.executor, `${task.id} should map to its declared executor`);
+    assert.equal(workload.evidencePolicy, "executor-result-required", `${task.id} should have an implemented executor`);
+  }
 });
 
 test("available quote scales solved projection, time, and synthetic credits", () => {

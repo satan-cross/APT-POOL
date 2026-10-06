@@ -1,5 +1,6 @@
 import net from "node:net";
 import { createHash, randomBytes } from "node:crypto";
+import { performance } from "node:perf_hooks";
 import { Worker } from "node:worker_threads";
 import { logger } from "./logger";
 import { WORKLOAD_CATALOG } from "./workload-catalog";
@@ -37,6 +38,8 @@ type ConnectionState = {
   socket: net.Socket;
   buffer: string;
   currentJob?: IssuedJob;
+  currentJobStartedAt?: number;
+  localWorkerId?: number;
   acceptedShares: number;
   connectedAt: string;
   lastShare?: string;
@@ -45,7 +48,12 @@ type ConnectionState = {
 type ShareListener = (share: Share & { height: number }) => void;
 type HashStats = {
   hashes: number;
-  firstHashAt: number;
+};
+
+type HashRateSample = {
+  workloadId: string;
+  hashesPerSecond: number;
+  sampledAt: number;
 };
 
 type LocalWorkerHealth = {
@@ -154,6 +162,7 @@ const LOCAL_MINER_WORKER_SOURCE = `
 const { parentPort, workerData } = require("node:worker_threads");
 const net = require("node:net");
 const { createHash } = require("node:crypto");
+const { performance } = require("node:perf_hooks");
 
 let stopping = false;
 let socket;
@@ -161,10 +170,26 @@ let buffer = "";
 
 function solve(job) {
   const prefix = job.height + ":" + job.previousHash + ":" + job.workloadId + ":";
+  const startedAt = performance.now();
+  let hashes = 0;
+  const reportProgress = () => {
+    parentPort.postMessage({
+      type: "hash_progress",
+      workloadId: job.workloadId,
+      hashes,
+      elapsedMs: Math.max(performance.now() - startedAt, 1),
+    });
+  };
   for (let nonce = job.nonceStart; nonce < job.nonceEnd; nonce += 1) {
+    hashes += 1;
     const hash = createHash("sha256").update(prefix + nonce).digest("hex");
-    if (hash.startsWith(job.difficulty)) return { nonce, hash };
+    if (hash.startsWith(job.difficulty)) {
+      reportProgress();
+      return { nonce, hash };
+    }
+    if (hashes % 10000 === 0) reportProgress();
   }
+  reportProgress();
   return null;
 }
 
@@ -172,6 +197,14 @@ function connect() {
   if (stopping) return;
   socket = net.createConnection({ port: workerData.port, host: "127.0.0.1" });
   socket.setEncoding("utf8");
+  socket.once("connect", () => {
+    if (!stopping) {
+      socket.write(JSON.stringify({
+        type: "worker",
+        token: workerData.workerToken,
+      }) + "\\n");
+    }
+  });
   socket.on("data", (chunk) => {
     buffer += chunk;
     let newline = buffer.indexOf("\\n");
@@ -231,9 +264,11 @@ export class MinerPool {
 
   private totalHashes = 0;
 
-  private firstHashAt?: number;
-
   private readonly workloadHashes = new Map<string, HashStats>();
+
+  private readonly hashRateSamples = new Map<string, HashRateSample>();
+
+  private readonly localWorkerTokens = new Map<string, number>();
 
   private difficulty: MinerDifficulty = (process.env.MINER_DIFFICULTY as MinerDifficulty) || "0000";
 
@@ -293,8 +328,16 @@ export class MinerPool {
         this.handleMessage(state, line);
       }
     });
-    socket.on("close", () => this.connections.delete(socket));
-    socket.on("error", () => this.connections.delete(socket));
+    const removeConnection = () => {
+      this.connections.delete(socket);
+      this.hashRateSamples.delete(
+        state.localWorkerId === undefined
+          ? state.minerId
+          : `local-worker-${state.localWorkerId}`,
+      );
+    };
+    socket.on("close", removeConnection);
+    socket.on("error", removeConnection);
     this.issueJob(state);
   }
 
@@ -321,6 +364,7 @@ export class MinerPool {
       nonceEnd: 1_000_000,
     };
     state.currentJob = job;
+    state.currentJobStartedAt = performance.now();
     this.jobsIssued += 1;
     state.socket.write(`${JSON.stringify({ type: "job", ...job })}\n`);
   }
@@ -352,6 +396,14 @@ export class MinerPool {
   private handleMessage(state: ConnectionState, line: string) {
     try {
       const message = JSON.parse(line) as { type?: string; jobId?: string; nonce?: number; hash?: string };
+      if (message.type === "worker") {
+        const workerMessage = message as { token?: string };
+        const localWorkerId = workerMessage.token
+          ? this.localWorkerTokens.get(workerMessage.token)
+          : undefined;
+        if (localWorkerId !== undefined) state.localWorkerId = localWorkerId;
+        return;
+      }
       if (message.type !== "share" || !state.currentJob || message.jobId !== state.currentJob.jobId) {
         state.socket.write(`${JSON.stringify({ type: "share_rejected", reason: "unknown job" })}\n`);
         return;
@@ -367,7 +419,18 @@ export class MinerPool {
         return;
       }
       const hashesUsed = nonce - state.currentJob.nonceStart + 1;
-      this.recordHashes(state.currentJob.workloadId, hashesUsed);
+      const elapsedMs = Math.max(
+        performance.now() - (state.currentJobStartedAt ?? performance.now()),
+        1,
+      );
+      this.recordHashes(
+        state.currentJob.workloadId,
+        state.localWorkerId === undefined
+          ? state.minerId
+          : `local-worker-${state.localWorkerId}`,
+        hashesUsed,
+        elapsedMs,
+      );
       const share: Share & { height: number } = {
         jobId: state.currentJob.jobId,
         workloadId: state.currentJob.workloadId,
@@ -437,19 +500,56 @@ export class MinerPool {
     return this.configuredMiners;
   }
 
-  private recordHashes(workloadId: string, hashes: number) {
+  private recordHashes(
+    workloadId: string,
+    sampleId: string,
+    hashes: number,
+    elapsedMs: number,
+  ) {
     this.totalHashes += hashes;
-    this.firstHashAt ??= Date.now();
     const existing = this.workloadHashes.get(workloadId);
     this.workloadHashes.set(workloadId, {
       hashes: (existing?.hashes ?? 0) + hashes,
-      firstHashAt: existing?.firstHashAt ?? Date.now(),
+    });
+    this.recordHashRateSample(
+      sampleId,
+      workloadId,
+      (hashes * 1000) / elapsedMs,
+    );
+  }
+
+  private recordHashRateSample(
+    sampleId: string,
+    workloadId: string,
+    hashesPerSecond: number,
+  ) {
+    if (!Number.isFinite(hashesPerSecond) || hashesPerSecond <= 0) return;
+    this.hashRateSamples.set(sampleId, {
+      workloadId,
+      hashesPerSecond,
+      sampledAt: Date.now(),
     });
   }
 
-  private hashRate(stats: HashStats | undefined, now: number) {
-    if (!stats?.hashes) return 0;
-    return Math.round(stats.hashes / Math.max((now - stats.firstHashAt) / 1000, 1));
+  private hashRate(workloadId: string | undefined, now: number) {
+    const activeMinerSamples = new Set(
+      [...this.connections.values()].map((connection) =>
+        connection.localWorkerId === undefined
+          ? connection.minerId
+          : `local-worker-${connection.localWorkerId}`,
+      ),
+    );
+    let rate = 0;
+    for (const [sampleId, sample] of this.hashRateSamples) {
+      if (
+        activeMinerSamples.has(sampleId)
+        && (!workloadId || sample.workloadId === workloadId)
+        && now - sample.sampledAt <= RELEASE_EVIDENCE_MAX_AGE_MS
+      ) {
+        rate += sample.hashesPerSecond;
+      }
+    }
+    return Math.round(rate);
   }
 
   private ensureLocalWorkers() {
@@ -474,12 +574,39 @@ export class MinerPool {
   }
 
   private startLocalWorker(workerId: number) {
+    const workerToken = randomBytes(16).toString("hex");
     const worker = new Worker(LOCAL_MINER_WORKER_SOURCE, {
       eval: true,
       name: `local-miner-${workerId}`,
-      workerData: { port: this.port, workerId },
+      workerData: { port: this.port, workerId, workerToken },
     });
     this.localWorkers.set(workerId, worker);
+    this.localWorkerTokens.set(workerToken, workerId);
+    worker.on(
+      "message",
+      (message: {
+        type?: string;
+        workloadId?: string;
+        hashes?: number;
+        elapsedMs?: number;
+      }) => {
+        if (
+          message.type !== "hash_progress"
+          || typeof message.workloadId !== "string"
+          || !Number.isSafeInteger(message.hashes)
+          || !Number.isFinite(message.elapsedMs)
+          || message.hashes! <= 0
+          || message.elapsedMs! <= 0
+        ) {
+          return;
+        }
+        this.recordHashRateSample(
+          `local-worker-${workerId}`,
+          message.workloadId,
+          (message.hashes! * 1000) / message.elapsedMs!,
+        );
+      },
+    );
     worker.on("error", (error) =>
       logger.warn({ err: error, workerId }, "Local miner worker failed"),
     );
@@ -488,6 +615,8 @@ export class MinerPool {
       if (this.localWorkers.get(workerId) === worker) {
         this.localWorkers.delete(workerId);
       }
+      this.hashRateSamples.delete(`local-worker-${workerId}`);
+      this.localWorkerTokens.delete(workerToken);
       if (this.started && !intentionalExit) {
         this.unexpectedRestarts += 1;
       }
@@ -511,7 +640,7 @@ export class MinerPool {
       running: runningLocalWorkers,
       healthy: !this.startWorkerAutomatically || runningLocalWorkers === this.configuredMiners,
     };
-    const totalHashRate = this.hashRate(this.totalHashes ? { hashes: this.totalHashes, firstHashAt: this.firstHashAt ?? now } : undefined, now);
+    const totalHashRate = this.hashRate(undefined, now);
     const throughputHealth = evaluateThroughputHealth({
       listening: this.started,
       activeMiners: this.connections.size,
@@ -549,7 +678,7 @@ export class MinerPool {
           lastInputDigest: shares.at(-1)?.inputDigest ?? "",
           rate: shares.length ? `${(shares.length / minutes).toFixed(2)} shares/min` : "0.00 shares/min",
           hashes: hashStats?.hashes ?? 0,
-          hashRate: this.hashRate(hashStats, now),
+          hashRate: this.hashRate(workload.id, now),
           status: shares.length >= TARGET_SHARES_PER_WORKLOAD ? "verified" : shares.length ? "running" : "waiting",
           lastMiner: shares.at(-1)?.miner ?? "",
         };

@@ -5,7 +5,6 @@ import {
   Beaker,
   CheckCircle2,
   ChevronRight,
-  Clock3,
   Copy,
   Cpu,
   Database,
@@ -519,7 +518,7 @@ function CoordinatorCard({ status }: { status: CommandCenterStatus }) {
           <span>Process {coordinator.gpuMining.processCount}</span>
           <span>Events {coordinator.gpuMining.stdoutLines}</span>
           <span>Measured {formatHashRate(coordinator.gpuMining.measuredHashRate)}</span>
-          <span>Relay {formatHashRate(coordinator.gpuMining.effectiveHashRateMhs * 1_000_000)}</span>
+          <span>Process {formatHashRate(coordinator.gpuMining.effectiveHashRateMhs * 1_000_000)}</span>
         </div>
         <div className="mt-2 text-[10px] leading-4 text-[#8fc4c0]">{coordinator.gpuMining.explanation}</div>
       </div>
@@ -828,7 +827,7 @@ function DemoResultPanel({ result, running, error, publicKeyValidation = false }
               <StatPill label="Jobs issued" value={String(result.mining.jobsIssued)} accent="slate" />
                <StatPill label="Hashes / attempts" value={result.mining.hashes.toLocaleString()} accent="slate" />
                 <StatPill label="Measured hash rate" value={formatHashRate(result.mining.hashRate)} accent="teal" />
-                <StatPill label="Effective relay rate" value={formatHashRate(result.mining.effectiveHashRateMhs * 1_000_000)} accent="amber" />
+                <StatPill label="Miner process rate" value={formatHashRate(result.mining.effectiveHashRateMhs * 1_000_000)} accent="amber" />
               <StatPill label="Difficulty" value={result.mining.difficulty} accent="amber" />
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -909,7 +908,7 @@ function PublicKeyDemoResultPanel({ result, running, error, publicKeyValidation 
               <StatPill label="Jobs issued" value={String(result.mining.jobsIssued)} accent="slate" />
                <StatPill label="Hashes / attempts" value={result.mining.hashes.toLocaleString()} accent="slate" />
                 <StatPill label="Measured hash rate" value={formatHashRate(result.mining.hashRate)} accent="teal" />
-                <StatPill label="Effective relay rate" value={formatHashRate(result.mining.effectiveHashRateMhs * 1_000_000)} accent="amber" />
+                <StatPill label="Miner process rate" value={formatHashRate(result.mining.effectiveHashRateMhs * 1_000_000)} accent="amber" />
               <StatPill label="Difficulty" value={result.mining.difficulty} accent="amber" />
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -1076,7 +1075,7 @@ function LiveMiningStrip({ coordinator, workload }: { coordinator: CommandCenter
         <StatPill label="Jobs" value={String(coordinator.jobsIssued)} accent="slate" />
          <StatPill label="Total hashes" value={coordinator.totalHashes.toLocaleString()} accent="slate" />
           <StatPill label="Measured total rate" value={formatHashRate(coordinator.hashRate)} accent="teal" />
-          <StatPill label="Effective relay rate" value={formatHashRate(coordinator.gpuMining.effectiveHashRateMhs * 1_000_000)} accent="amber" />
+          <StatPill label="Miner process rate" value={formatHashRate(coordinator.gpuMining.effectiveHashRateMhs * 1_000_000)} accent="amber" />
         <StatPill label="Difficulty" value={coordinator.difficulty} accent="amber" />
         <StatPill label="Selected proofs" value={String(workload?.verifiedShares ?? 0)} accent="slate" />
       </div>
@@ -1092,7 +1091,6 @@ function Dashboard({ status, healthStatus, onRefresh, refreshing, demoResult, de
     <div className="instrument-grid min-h-[calc(100dvh-77px)] bg-[#eaf2f3] px-4 py-6 md:px-8 md:py-7">
       <div className="mx-auto max-w-[1520px]">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-[11px] text-[#607a82]"><Clock3 size={14} /><span>Snapshot {formatTime(status.generatedAt)}</span><span className="text-[#afbec1]">/</span><span className={`${mono} text-[10px]`} data-testid="text-snapshot-date">{formatDate(status.generatedAt)}</span></div>
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5d777f]"><span className="status-pulse h-1.5 w-1.5 rounded-full bg-[#159d8d]" /> {healthStatus || 'service'} link nominal</div>
         </div>
         <div className="mb-5"><DifficultyControl value={difficulty} onChange={onDifficultyChange} onProduction={onProductionDifficulty} minerCount={minerCount} onMinerCountChange={onMinerCountChange} gpuBackend={gpuBackend} onGpuBackendChange={onGpuBackendChange} onSave={onSaveSettings} saving={savingSettings} saved={settingsSaved} label="Home default difficulty" /></div>

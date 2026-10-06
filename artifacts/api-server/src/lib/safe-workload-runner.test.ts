@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
+import { once } from "node:events";
+import net from "node:net";
 import { after, describe, it } from "node:test";
+import { LocalDnsPlane } from "./dns-plane";
 import { localSecurityLab } from "./local-security-lab";
 import { runSafeWorkload } from "./safe-workload-runner";
 import { WORKLOAD_CATALOG } from "./workload-catalog";
@@ -44,6 +47,44 @@ function compositeRsaSpki(): { der: Buffer; modulus: bigint } {
   return { modulus, der: der(0x30, Buffer.concat([algorithm, subjectPublicKey])) };
 }
 
+async function getFreePort() {
+  const server = net.createServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address !== "string");
+  const port = address.port;
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
+  return port;
+}
+
+async function runWithLocalDnsPlane(
+  workload: (typeof WORKLOAD_CATALOG)[number],
+  input: { publicKeyArtifact?: string } = {},
+) {
+  if (workload.executor !== "dns-redirect-fixture") return runSafeWorkload(workload, input);
+  const plane = new LocalDnsPlane(await getFreePort());
+  plane.start();
+  const deadline = Date.now() + 1_000;
+  let targetReady = false;
+  while (!targetReady && Date.now() < deadline) {
+    try {
+      await plane.probeResolvedTarget("127.0.0.1");
+      targetReady = plane.snapshot().status === "Active & synchronized";
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+  }
+  assert.ok(targetReady, "loopback DNS target should be ready");
+  try {
+    return await runSafeWorkload(workload, { ...input, dnsPlaneInstance: plane });
+  } finally {
+    await plane.stop();
+  }
+}
+
 describe("safe workload catalog", () => {
   after(async () => {
     await localSecurityLab.stop();
@@ -52,10 +93,10 @@ describe("safe workload catalog", () => {
   it("has a local executor for every expanded catalog workload", async () => {
     const executable = WORKLOAD_CATALOG.filter((workload) => workload.executor !== "legacy");
 
-    assert.equal(WORKLOAD_CATALOG.length, 69);
-    assert.ok(executable.length > 40);
+    assert.equal(WORKLOAD_CATALOG.length, 70);
+    assert.equal(executable.length, WORKLOAD_CATALOG.length);
     for (const workload of executable) {
-      const result = await runSafeWorkload(workload, workload.executor === "public-key-validator"
+      const result = await runWithLocalDnsPlane(workload, workload.executor === "public-key-validator"
         ? { publicKeyArtifact: "not-a-public-key" }
         : undefined);
       assert.ok(result.answer, `${workload.id} should return an answer`);
@@ -66,7 +107,22 @@ describe("safe workload catalog", () => {
         assert.ok(result.evidence.some((item) => item.startsWith("local_service=http://127.0.0.1:")), `${workload.id} should report its local service`);
       }
       assert.equal(workload.executionMode, "local-live");
+      assert.equal(workload.evidencePolicy, "executor-result-required", `${workload.id} should require executor evidence`);
     }
+  });
+
+  it("grades the production-shaped local DNS plane without leaving loopback", async () => {
+    const workload = WORKLOAD_CATALOG.find((item) => item.executor === "dns-redirect-fixture");
+    assert.ok(workload);
+    const result = await runWithLocalDnsPlane(workload);
+
+    assert.match(result.answer, /local DNS range test graded A/i);
+    assert.ok(result.details.some((item) => item.label === "Checks passed" && item.value === "5 / 5"));
+    assert.ok(result.details.some((item) => item.label === "DNS response" && item.value.includes("127.0.0.1")));
+    assert.ok(result.details.some((item) => item.label === "Loopback target" && item.value.startsWith("200 ARGUS local redirect target")));
+    assert.ok(result.details.some((item) => item.label === "External DNS or traffic" && item.value === "not contacted"));
+    assert.ok(result.evidence.includes("external_dns_queries=0"));
+    assert.ok(result.evidence.includes("external_redirects=0"));
   });
 
   it("validates a supplied public key and records a digest without recovering a private key", async () => {

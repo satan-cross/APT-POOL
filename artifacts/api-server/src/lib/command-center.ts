@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { dnsPlane } from "./dns-plane";
 import {
-  effectiveRelayHashRateMhs,
   gpuMiner,
+  reportedProcessHashRateMhs,
   type GpuMiningStatus,
 } from "./gpu-miner-process";
 import { minerPool, type ThroughputHealth } from "./miner-pool";
@@ -117,7 +117,7 @@ export function getCommandCenterStatus(
       throughputHealth: pool.throughputHealth satisfies ThroughputHealth,
        gpuMining: {
          ...gpuMiner.snapshot(),
-         effectiveHashRateMhs: effectiveRelayHashRateMhs(),
+         effectiveHashRateMhs: reportedProcessHashRateMhs(),
        } satisfies GpuMiningStatus,
       intentionalScaleDowns: pool.intentionalScaleDowns,
       unexpectedRestarts: pool.unexpectedRestarts,

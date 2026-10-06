@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -267,16 +267,11 @@
 
 @layer utilities {
   .instrument-grid {
-    background-image:
-      linear-gradient(hsl(200 22% 86% / 0.48) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(200 22% 86% / 0.48) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-image: none;
   }
 
   .dark .instrument-grid {
-    background-image:
-      linear-gradient(hsl(211 29% 25% / 0.55) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(211 29% 25% / 0.55) 1px, transparent 1px);
+    background-image: none;
   }
 
   .status-pulse {
@@ -325,6 +320,210 @@
 
 body {
   min-width: 320px;
+}
+
+/* BYTEPOOL theme adapted from attached_assets/htdocs_1789502871123.zip. */
+:root {
+  --background: 240 7% 4%;
+  --foreground: 0 0% 90%;
+  --border: 240 4% 12%;
+  --card: 240 5% 7%;
+  --card-foreground: 0 0% 90%;
+  --card-border: 240 4% 12%;
+  --sidebar: 240 10% 5%;
+  --sidebar-foreground: 0 0% 90%;
+  --sidebar-border: 240 4% 12%;
+  --sidebar-primary: 348 83% 47%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 5% 10%;
+  --sidebar-accent-foreground: 0 0% 90%;
+  --popover: 240 5% 7%;
+  --popover-foreground: 0 0% 90%;
+  --popover-border: 240 4% 12%;
+  --primary: 348 83% 47%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 5% 10%;
+  --secondary-foreground: 0 0% 90%;
+  --muted: 240 5% 10%;
+  --muted-foreground: 240 5% 56%;
+  --accent: 348 100% 55%;
+  --accent-foreground: 0 0% 100%;
+  --input: 240 4% 12%;
+  --ring: 348 83% 47%;
+  --app-font-sans: 'Inter', system-ui, sans-serif;
+  --radius: 0.625rem;
+}
+
+html,
+body,
+#root {
+  background: #09090b;
+  color: #e6e6e6;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+#root [class*="bg-[#"] {
+  background-color: #111114 !important;
+}
+
+#root [class*="bg-[#eaf2f3]"],
+#root [class*="bg-[#17181b]"] {
+  background-color: #09090b !important;
+}
+
+#root [class*="bg-[#07181c]"],
+#root [class*="bg-[#0f3c44]"],
+#root [class*="bg-[#102a32]"],
+#root [class*="bg-[#123e46]"],
+#root [class*="bg-[#15363e]"],
+#root [class*="bg-[#164b53]"],
+#root [class*="bg-[#183b43]"],
+#root [class*="bg-[#18464d]"],
+#root [class*="bg-[#1a4a50]"],
+#root [class*="bg-[#1b5c5c]"],
+#root [class*="bg-[#1e5b60]"] {
+  background-color: #0d0d10 !important;
+}
+
+#root [class*="bg-[#147f79]"],
+#root [class*="bg-[#0f625f]"],
+#root [class*="bg-[#d9a329]"],
+#root [class*="bg-[#e6a329]"],
+#root [class*="bg-[#efbf4f]"],
+#root [class*="bg-[#b28721]"] {
+  background-color: #db143c !important;
+}
+
+#root [class*="bg-[#147f79]"]:hover,
+#root [class*="bg-[#0f625f]"]:hover,
+#root [class*="bg-[#d9a329]"]:hover,
+#root [class*="bg-[#e6a329]"]:hover,
+#root [class*="bg-[#efbf4f]"]:hover,
+#root [class*="bg-[#b28721]"]:hover {
+  background-color: #ff1a3c !important;
+}
+
+#root [class*="bg-[#e6f8f3]"],
+#root [class*="bg-[#e8f8f4]"],
+#root [class*="bg-[#eef9f6]"],
+#root [class*="bg-[#1d493f]"],
+#root [class*="bg-[#1c322d]"] {
+  background-color: rgb(34 197 94 / 12%) !important;
+}
+
+#root [class*="bg-[#fbe1de]"],
+#root [class*="bg-[#fce6e2]"],
+#root [class*="bg-[#fff8f5]"],
+#root [class*="bg-[#322321]"] {
+  background-color: rgb(219 20 60 / 10%) !important;
+}
+
+#root [class*="bg-[#fff5d9]"],
+#root [class*="bg-[#fff5df]"],
+#root [class*="bg-[#fff0d1]"],
+#root [class*="bg-[#ffefbf]"],
+#root [class*="bg-[#2a261c]"],
+#root [class*="bg-[#302b20]"],
+#root [class*="bg-[#3b311b]"] {
+  background-color: #1e0a10 !important;
+}
+
+#root [class*="text-[#"] {
+  color: #8a8a96 !important;
+}
+
+#root [class*="font-extrabold"][class*="text-[#"],
+#root [class*="font-extrabold"] [class*="text-[#"],
+#root [class*="font-bold"][class*="text-[#"] {
+  color: #e6e6e6 !important;
+}
+
+#root [class*="text-[#d9a329]"],
+#root [class*="text-[#e2c66e]"],
+#root [class*="text-[#f0ce70]"],
+#root [class*="text-[#f6e0a0]"],
+#root [class*="text-[#d09a25]"],
+#root [class*="text-[#d49c27]"] {
+  color: #ff1a3c !important;
+}
+
+#root [class*="text-[#159d8d]"],
+#root [class*="text-[#087a62]"],
+#root [class*="text-[#13776f]"],
+#root [class*="text-[#147f79]"],
+#root [class*="text-[#62c5a4]"],
+#root [class*="text-[#6bd0ad]"],
+#root [class*="text-[#8fe2c4]"],
+#root [class*="text-[#8be1ce]"],
+#root [class*="text-[#a8e4d6]"] {
+  color: #22c55e !important;
+}
+
+#root [class*="text-[#a23d34]"],
+#root [class*="text-[#b24a3e]"],
+#root [class*="text-[#ac433a]"],
+#root [class*="text-[#e99a8f]"],
+#root [class*="text-[#efa49b]"],
+#root [class*="text-[#8e3d35]"] {
+  color: #ff526b !important;
+}
+
+#root [class*="border-[#"] {
+  border-color: #1c1c20 !important;
+}
+
+#root [class*="border-[#147f79]"],
+#root [class*="border-[#3d8c88]"],
+#root [class*="border-[#91c8c0]"],
+#root [class*="border-[#d9a329]"],
+#root [class*="border-[#b28721]"] {
+  border-color: rgb(219 20 60 / 45%) !important;
+}
+
+#root input,
+#root select,
+#root textarea {
+  color-scheme: dark;
+}
+
+#root input:not([type="checkbox"]):not([type="radio"]),
+#root select,
+#root textarea {
+  background-color: #0d0d10 !important;
+  border-color: #1c1c20 !important;
+  color: #e6e6e6 !important;
+  -webkit-text-fill-color: #e6e6e6 !important;
+  caret-color: #e6e6e6;
+}
+
+#root input::placeholder,
+#root textarea::placeholder {
+  color: #85858e !important;
+  opacity: 1;
+}
+
+#root input:-webkit-autofill,
+#root input:-webkit-autofill:hover,
+#root input:-webkit-autofill:focus,
+#root textarea:-webkit-autofill,
+#root select:-webkit-autofill {
+  -webkit-text-fill-color: #e6e6e6 !important;
+  box-shadow: 0 0 0 1000px #0d0d10 inset !important;
+  caret-color: #e6e6e6;
+}
+
+#root option {
+  background-color: #0d0d10;
+  color: #e6e6e6;
+}
+
+#root button:focus-visible,
+#root a:focus-visible,
+#root input:focus-visible,
+#root select:focus-visible,
+#root textarea:focus-visible {
+  outline: 2px solid #db143c;
+  outline-offset: 2px;
 }
 
 /**

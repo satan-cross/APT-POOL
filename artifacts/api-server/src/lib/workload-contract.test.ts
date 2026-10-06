@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { getWorkload } from "./workload-catalog";
+import { getWorkload, WORKLOAD_CATALOG } from "./workload-catalog";
 import {
   discardIssuedWorkloadJob,
   issuedWorkloadJobCount,
@@ -74,21 +74,11 @@ describe("workload evidence contract", () => {
     assert.equal(ledger.summary(workload.id).completionState, "waiting");
   });
 
-  it("keeps legacy fixture demos pending until a real executor is implemented", () => {
-    const legacyWorkload = getWorkload("w-04");
-    assert.ok(legacyWorkload);
-    const evidence = createWorkloadEvidence({
-      workload: legacyWorkload,
-      jobId: "job-mining-only",
-      details: [{ label: "Accepted share", value: "0000abc" }],
-      evidence: ["miner_hash=0000abc"],
-    });
-    const ledger = new WorkloadEvidenceLedger();
-    assert.deepEqual(ledger.record(evidence), {
-      accepted: false,
-      reason: "workload executor evidence is not implemented",
-    });
-    assert.equal(ledger.summary(legacyWorkload.id).completionState, "waiting");
+  it("requires every catalog workload to name an implemented executor", () => {
+    for (const entry of WORKLOAD_CATALOG) {
+      assert.notEqual(entry.executor, "legacy", `${entry.id} must not use the legacy placeholder`);
+      assert.equal(entry.evidencePolicy, "executor-result-required", `${entry.id} must require executor evidence`);
+    }
   });
 
   it("rejects malformed evidence digests", () => {

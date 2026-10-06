@@ -95,21 +95,16 @@ def _search_argus_batch(
 def solve_cpu_multiprocess(
     job: dict[str, Any],
     num_processes: int | None = None,
+    worker_pool: Any | None = None,
 ) -> tuple[int, str, int, float]:
-    """Solve an ARGUS job with bounded multiprocessing and measured telemetry.
-
-    The effective rate follows the same floor and scaling convention as
-    ``subenquenox_miner.py``/``miner.py``.  It is reported separately from the
-    raw rate so the dashboard can distinguish measured work from relay-mode
-    telemetry.
-    """
+    """Solve an ARGUS job with bounded multiprocessing and return measured H/s."""
     prefix = f"{job['height']}:{job['previousHash']}:{job['workloadId']}:".encode()
     difficulty = str(job["difficulty"])
     start = int(job["nonceStart"])
     end = int(job["nonceEnd"])
     total = max(0, end - start)
     if total == 0:
-        return -1, "", 0, 3500.0
+        return -1, "", 0, 0.0
 
     workers = max(1, min(num_processes or mp.cpu_count(), 4, total))
     chunk = (total + workers - 1) // workers
@@ -121,6 +116,8 @@ def solve_cpu_multiprocess(
 
     if len(tasks) == 1:
         results = [_search_argus_batch(*tasks[0])]
+    elif worker_pool is not None:
+        results = worker_pool.starmap(_search_argus_batch, tasks)
     else:
         with mp.Pool(processes=workers) as pool:
             results = pool.starmap(_search_argus_batch, tasks)
@@ -128,8 +125,9 @@ def solve_cpu_multiprocess(
     elapsed = max(0.0001, time.perf_counter() - started)
     winner: tuple[int, str] | None = None
     checked = 0
-    for result in results:
+    for result, task in zip(results, tasks):
         if result is None:
+            checked += task[2] - task[1]
             continue
         nonce, digest, checked_in_range = result
         checked += checked_in_range
@@ -139,10 +137,9 @@ def solve_cpu_multiprocess(
         checked = total
 
     raw_hps = checked / elapsed
-    effective_mhs = min(350000000.0, max(3500.0, ((raw_hps * 10000) / 1000.0) * 14.5))
     if winner is None:
-        return -1, "", checked, effective_mhs
-    return winner[0], winner[1], checked, effective_mhs
+        return -1, "", checked, raw_hps
+    return winner[0], winner[1], checked, raw_hps
 
 
 def run_benchmark(duration_sec: int = 10, workers: int | None = None) -> None:
@@ -155,19 +152,24 @@ def run_benchmark(duration_sec: int = 10, workers: int | None = None) -> None:
         "nonceStart": 0,
         "nonceEnd": 250000,
     }
-    started = time.perf_counter()
     hashes = 0
-    while time.perf_counter() - started < max(1, duration_sec):
-        job["nonceStart"] = 0
-        job["nonceEnd"] = 250000
-        _, _, checked, _ = solve_cpu_multiprocess(job, workers)
-        hashes += checked
+    worker_count = max(1, min(workers or mp.cpu_count(), 4))
+    with mp.Pool(processes=worker_count) as worker_pool:
+        started = time.perf_counter()
+        while time.perf_counter() - started < max(1, duration_sec):
+            job["nonceStart"] = 0
+            job["nonceEnd"] = 250000
+            _, _, checked, _ = solve_cpu_multiprocess(
+                job,
+                worker_count,
+                worker_pool,
+            )
+            hashes += checked
     elapsed = max(0.001, time.perf_counter() - started)
     raw_hps = hashes / elapsed
-    effective_mhs = min(350000000.0, max(3500.0, ((raw_hps * 10000) / 1000.0) * 14.5))
     print(
         f"ARGUS CPU benchmark: {hashes:,} hashes in {elapsed:.2f}s | "
-        f"raw={raw_hps:,.0f} H/s | effective={effective_mhs:,.1f} MH/s | "
+        f"measured={raw_hps:,.0f} H/s ({raw_hps / 1_000_000:,.6f} MH/s) | "
         f"workers={workers or min(mp.cpu_count(), 4)}"
     )
 
@@ -362,7 +364,10 @@ def connect_and_mine(host: str, port: int, backend: str) -> int:
             else "Using bounded CPU fallback; no GPU proof backend is active"
         ),
     )
+    worker_pool = None
     try:
+        if solver is None:
+            worker_pool = mp.Pool(processes=max(1, min(mp.cpu_count(), 4)))
         with socket.create_connection((host, port), timeout=5) as connection:
             connection.settimeout(None)
             emit("pool_connected", backend=selected_backend)
@@ -381,14 +386,30 @@ def connect_and_mine(host: str, port: int, backend: str) -> int:
                         continue
                     emit("job_received", backend=selected_backend, jobId=job.get("jobId"))
                     if solver:
+                        solve_started = time.perf_counter()
                         result = solver.solve(job)
-                        checked = 0
-                        effective_mhs = None
+                        solve_elapsed = max(0.0001, time.perf_counter() - solve_started)
+                        checked = max(
+                            0,
+                            int(job["nonceEnd"]) - int(job["nonceStart"]),
+                        )
+                        measured_hps = checked / solve_elapsed
                     else:
                         solve_started = time.perf_counter()
-                        nonce, digest, checked, effective_mhs = solve_cpu_multiprocess(job)
+                        nonce, digest, checked, measured_hps = solve_cpu_multiprocess(
+                            job,
+                            worker_pool=worker_pool,
+                        )
                         solve_elapsed = max(0.0001, time.perf_counter() - solve_started)
                         result = None if nonce < 0 else (nonce, digest)
+                    emit(
+                        "hash_sample",
+                        backend=selected_backend,
+                        jobId=job.get("jobId"),
+                        hashrateHps=round(measured_hps),
+                        hashrateMhs=measured_hps / 1_000_000,
+                        noncesChecked=checked,
+                    )
                     if result is None:
                         emit("job_exhausted", backend=selected_backend, jobId=job.get("jobId"))
                         continue
@@ -406,19 +427,14 @@ def connect_and_mine(host: str, port: int, backend: str) -> int:
                         jobId=job.get("jobId"),
                         nonce=nonce,
                         hash=digest,
-                        **(
-                            {
-                                "hashrateHps": round(checked / solve_elapsed),
-                                "hashrateMhs": effective_mhs,
-                                "noncesChecked": checked,
-                            }
-                            if effective_mhs is not None
-                            else {}
-                        ),
                     )
     except (OSError, json.JSONDecodeError) as error:
         emit("miner_error", backend=selected_backend, message=str(error))
         return 1
+    finally:
+        if worker_pool is not None:
+            worker_pool.close()
+            worker_pool.join()
 
 
 def main() -> int:
