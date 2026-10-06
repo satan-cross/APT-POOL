@@ -255,7 +255,10 @@ export async function runCommandCenterDemo(
     details = [detail("Bytes", String(sample.length)), detail("Sample prefix", `${sample.toString("hex").slice(0, 16)}…`), detail("Source", "Node crypto.randomBytes")];
     evidence = [`sample_sha256=${hash(sample.toString("hex"))}`];
   } else {
-    const safeResult = await runSafeWorkload(workload);
+    const safeResult = await runSafeWorkload(
+      workload,
+      workloadId === "w-70" ? { dnsPlaneInstance } : {},
+    );
     answer = safeResult.answer;
     details = safeResult.details;
     evidence = safeResult.evidence;
@@ -268,7 +271,7 @@ export async function runCommandCenterDemo(
   } else {
     details.push(detail("Live accepted miner hash", liveMining.lastHash || "—"));
     details.push(detail("Live miner", liveMining.lastMiner || "—"));
-    details.push(detail("Hashes / recovery attempts", liveMining.hashes.toLocaleString()));
+    details.push(detail("Hashes processed", liveMining.hashes.toLocaleString()));
     details.push(detail("Measured hash rate", `${liveMining.hashRate.toLocaleString()} H/s`));
     details.push(detail("Effective relay rate", `${liveMining.effectiveHashRateMhs.toLocaleString()} MH/s`));
     evidence.push(`accepted_miner_hash=${liveMining.lastHash || "none"}`);

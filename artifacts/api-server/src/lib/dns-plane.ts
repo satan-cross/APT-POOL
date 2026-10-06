@@ -1,6 +1,6 @@
 import dgram from "node:dgram";
 import http from "node:http";
-import { createHash, generateKeyPairSync, randomBytes, sign } from "node:crypto";
+import { createHash, generateKeyPairSync, randomBytes, sign, verify } from "node:crypto";
 import { isIP } from "node:net";
 import { logger } from "./logger";
 
@@ -249,6 +249,12 @@ export class LocalDnsPlane {
       keyFingerprint: createHash("sha256").update(publicKey).digest("hex"),
       recordHash: createHash("sha256").update(canonical).digest("hex"),
     };
+  }
+
+  verifyRecordProof(proof: { canonical: string; signature: string }) {
+    const canonical = `${this.record.domain}|A|${this.record.targetIp}|${this.record.ttl}|${this.record.serial}`;
+    return proof.canonical === canonical
+      && verify(null, Buffer.from(canonical), this.signingKeys.publicKey, Buffer.from(proof.signature, "base64"));
   }
 
   async probeResolvedTarget(targetIp: string) {
