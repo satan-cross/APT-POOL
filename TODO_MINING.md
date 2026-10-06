@@ -1,0 +1,1 @@
+Change python miners to subenquenox_miner amd miner.py and modify gpu_miner.cpp to follow exact concepts. Get hash rate for both CPP and Python but first move the subenquenox_miner+miner to gpu_miner.

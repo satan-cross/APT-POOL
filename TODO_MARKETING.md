@@ -1,0 +1,1 @@
+Outreach for chinese bitcoin mining groups (mine bytepool to get higher payouts) but first solve payout rewards using system setmatic change.
