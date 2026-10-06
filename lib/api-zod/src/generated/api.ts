@@ -285,6 +285,7 @@ export const RunCommandCenterDemoResponse = zod.object({
   "startedAt": zod.coerce.date(),
   "finishedAt": zod.coerce.date(),
   "answer": zod.string(),
+  "mnemonic": zod.string().optional().describe('Fresh BIP39 phrase generated for this demo response only; never included in shared accepted workload reports.'),
   "details": zod.array(zod.object({
   "label": zod.string(),
   "value": zod.string()

@@ -762,6 +762,13 @@ function DemoResultPanel({ result, running, error, publicKeyValidation = false }
             <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#39716d]">Answer</div>
             <div className="mt-1 text-sm font-extrabold text-[#115f5b]" data-testid="text-demo-answer">{result.answer}</div>
           </div>
+          {result.mnemonic && (
+            <div className="mt-4 rounded border border-[#d8bb78] bg-[#fff8e8] p-3" data-testid="generated-mnemonic">
+              <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#82969b]">Generated {result.mnemonic.trim().split(/\s+/).length}-word BIP39 phrase</div>
+              <div className={`${mono} mt-2 break-words text-[12px] leading-6 text-[#355b63]`}>{result.mnemonic}</div>
+              <p className="mt-2 text-[10px] leading-4 text-[#8e5a35]">This is a valid generated phrase with a derived seed. It is returned for this demo only; do not use it for funds or share it.</p>
+            </div>
+          )}
           {(result.dnsSerial !== undefined || result.dnsTarget || result.dnsRedirect || result.dnsRecordProof) && (
             <div className="mt-4 rounded-md border border-[#b9d8d8] bg-[#f0f8f7] p-4" data-testid="panel-dns-migration-proof">
               <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#39716d]">DNS migration proof</div>
@@ -1313,7 +1320,7 @@ export function TaskDetail() {
                    <div className="mb-3 w-full rounded-md border border-[#4a8784] bg-[#164b53] p-4">
                      <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#a8e4d6]">Safe fixture mode</div>
                      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-                       <p className="max-w-2xl text-[11px] leading-5 text-[#a8d5d1]">Generates a fresh mnemonic in memory, derives public secp256k1 material, then discards secret values. Mnemonic recovery from a public key is not attempted.</p>
+                       <p className="max-w-2xl text-[11px] leading-5 text-[#a8d5d1]">Generates and displays a fresh valid BIP39 phrase, derives public secp256k1 material, then discards entropy and private derivation values. Demo phrases are exposed in this response; never use them for funds or share them. Mnemonic recovery from a public key is not attempted.</p>
                        <select value={mnemonicWords} onChange={(event) => setMnemonicWords(Number(event.target.value) as 12 | 24)} className={`${mono} rounded-md border border-[#5a9894] bg-[#0f3c44] px-3 py-2 text-xs font-bold text-[#e4fbf4]`} aria-label="Mnemonic word count" data-testid="select-mnemonic-words">
                          <option value={12}>12 words</option>
                          <option value={24}>24 words</option>

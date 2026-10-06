@@ -658,6 +658,8 @@ export interface DemoResult {
   startedAt: string;
   finishedAt: string;
   answer: string;
+  /** Fresh BIP39 phrase generated for this demo response only; never included in shared accepted workload reports. */
+  mnemonic?: string;
   details: DemoDetail[];
   evidence: string[];
   executionEvidence: WorkloadEvidence;

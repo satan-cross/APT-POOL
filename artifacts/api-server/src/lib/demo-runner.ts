@@ -44,6 +44,7 @@ type DemoResult = {
   startedAt: string;
   finishedAt: string;
   answer: string;
+  mnemonic?: string;
   details: Detail[];
   evidence: string[];
   executionEvidence: WorkloadEvidenceRecord;
@@ -126,6 +127,7 @@ export async function runCommandCenterDemo(
     }
   }
   let answer = "";
+  let mnemonic: string | undefined;
   let details: Detail[] = [];
   let evidence: string[] = [];
   let artifactDigest: string | undefined;
@@ -164,6 +166,7 @@ export async function runCommandCenterDemo(
   } else if (workloadId === "w-01") {
     const fixture = runMnemonicFixture(mnemonicWords);
     answer = fixture.answer;
+    mnemonic = fixture.mnemonic;
     details = fixture.details;
     evidence = fixture.evidence;
   } else if (workloadId === "w-02") {
@@ -326,6 +329,7 @@ export async function runCommandCenterDemo(
     startedAt,
     finishedAt: new Date().toISOString(),
     answer,
+    mnemonic,
     details,
     evidence,
     executionEvidence,
