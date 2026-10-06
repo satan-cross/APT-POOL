@@ -50,7 +50,7 @@ export const GetCommandCenterStatusResponse = zod.object({
   "processCount": zod.number().int(),
   "stdoutLines": zod.number().int().describe('Number of newline-delimited telemetry events read from the miner process'),
   "measuredHashRate": zod.number().int().describe('Latest measured raw hashes per second reported by the miner process'),
-  "effectiveHashRateMhs": zod.number().describe('Relay-scale effective rate in MH/s; telemetry only and not physical hardware throughput'),
+  "effectiveHashRateMhs": zod.number().describe('Measured local miner-process hash rate in MH/s; zero when unavailable or stale'),
   "noncesChecked": zod.number().int().describe('Number of nonce candidates checked for the latest reported share'),
   "lastEventAt": zod.coerce.date().nullable(),
   "lastShareAt": zod.coerce.date().nullable(),
@@ -319,7 +319,7 @@ export const RunCommandCenterDemoResponse = zod.object({
   "jobsIssued": zod.number().int(),
   "hashes": zod.number().int().describe('Validated nonce hashes attempted for the selected workload'),
   "hashRate": zod.number().int().describe('Measured hashes per second for the selected workload'),
-  "effectiveHashRateMhs": zod.number().describe('Relay-scale effective rate in MH/s for demo telemetry; not physical hardware throughput'),
+  "effectiveHashRateMhs": zod.number().describe('Measured local miner-process hash rate in MH/s; zero when unavailable or stale'),
   "workloadShares": zod.number().int(),
   "lastHash": zod.string(),
   "lastMiner": zod.string()
@@ -391,7 +391,7 @@ export const MigrateCommandCenterDnsResponse = zod.object({
   "jobsIssued": zod.number().int(),
   "hashes": zod.number().int().describe('Validated nonce hashes attempted for the selected workload'),
   "hashRate": zod.number().int().describe('Measured hashes per second for the selected workload'),
-  "effectiveHashRateMhs": zod.number().describe('Relay-scale effective rate in MH/s for demo telemetry; not physical hardware throughput'),
+  "effectiveHashRateMhs": zod.number().describe('Measured local miner-process hash rate in MH/s; zero when unavailable or stale'),
   "workloadShares": zod.number().int(),
   "lastHash": zod.string(),
   "lastMiner": zod.string()

@@ -267,16 +267,11 @@
 
 @layer utilities {
   .instrument-grid {
-    background-image:
-      linear-gradient(hsl(200 22% 86% / 0.48) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(200 22% 86% / 0.48) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-image: none;
   }
 
   .dark .instrument-grid {
-    background-image:
-      linear-gradient(hsl(211 29% 25% / 0.55) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(211 29% 25% / 0.55) 1px, transparent 1px);
+    background-image: none;
   }
 
   .status-pulse {
@@ -356,12 +351,12 @@ body {
   --input: 240 4% 12%;
   --ring: 348 83% 47%;
   --app-font-sans: 'Inter', system-ui, sans-serif;
+  --radius: 0.625rem;
 }
 
 html,
 body,
 #root {
-  min-height: 100%;
   background: #09090b;
   color: #e6e6e6;
   font-family: 'Inter', system-ui, sans-serif;
@@ -497,11 +492,29 @@ body,
   background-color: #0d0d10 !important;
   border-color: #1c1c20 !important;
   color: #e6e6e6 !important;
+  -webkit-text-fill-color: #e6e6e6 !important;
+  caret-color: #e6e6e6;
 }
 
 #root input::placeholder,
 #root textarea::placeholder {
-  color: #4a4a54;
+  color: #85858e !important;
+  opacity: 1;
+}
+
+#root input:-webkit-autofill,
+#root input:-webkit-autofill:hover,
+#root input:-webkit-autofill:focus,
+#root textarea:-webkit-autofill,
+#root select:-webkit-autofill {
+  -webkit-text-fill-color: #e6e6e6 !important;
+  box-shadow: 0 0 0 1000px #0d0d10 inset !important;
+  caret-color: #e6e6e6;
+}
+
+#root option {
+  background-color: #0d0d10;
+  color: #e6e6e6;
 }
 
 #root button:focus-visible,

@@ -23,11 +23,6 @@ export type GpuMiningStatus = {
   explanation: string;
 };
 
-// Relay-scale telemetry is an effective coordination value, not physical
-// hardware throughput. Keep demo displays useful when no GPU event has arrived
-// yet, while preserving any higher value reported by the local miner.
-export const MINIMUM_EFFECTIVE_RELAY_RATE_MHS = 75_410_000;
-
 type MinerChild = ChildProcessByStdio<null, Readable, Readable>;
 
 function requestedBackend(): RequestedBackend {
@@ -96,6 +91,7 @@ export class GpuMinerProcess {
   private status = initialStatus();
   private stdoutBuffer = "";
   private started = false;
+  private lastRateSampleAt?: number;
 
   constructor(private readonly poolPort: number) {}
 
@@ -136,6 +132,7 @@ export class GpuMinerProcess {
       },
     );
     this.child = child;
+    this.lastRateSampleAt = undefined;
     this.status = {
       ...this.status,
       active: true,
@@ -211,12 +208,17 @@ export class GpuMinerProcess {
               explanation: event.message ?? "GPU libraries were unavailable; the process is using CPU fallback.",
             };
           }
-          if (event.event === "share_submitted" && event.hashrateHps !== undefined) {
+          if (event.event === "hash_sample" && event.hashrateHps !== undefined) {
+            this.lastRateSampleAt = Date.now();
             this.status = {
               ...this.status,
               measuredHashRate: Math.max(0, Math.round(event.hashrateHps)),
               effectiveHashRateMhs: Math.max(0, Number(event.hashrateMhs) || 0),
               noncesChecked: Math.max(0, Math.round(event.noncesChecked ?? 0)),
+            };
+          } else if (event.event === "share_submitted") {
+            this.status = {
+              ...this.status,
               lastShareAt: new Date().toISOString(),
             };
           }
@@ -229,20 +231,26 @@ export class GpuMinerProcess {
       logger.warn({ message: chunk.toString().trim() }, "GPU miner stderr");
     });
     child.once("error", (error) => {
+      this.lastRateSampleAt = undefined;
       this.status = {
         ...this.status,
         active: false,
         processCount: 0,
+        measuredHashRate: 0,
+        effectiveHashRateMhs: 0,
         explanation: `Unable to start the GPU miner process: ${error.message}`,
       };
       this.child = undefined;
     });
     child.once("exit", (code) => {
+      this.lastRateSampleAt = undefined;
       this.status = {
         ...this.status,
         active: false,
         processCount: 0,
         backend: "disabled",
+        measuredHashRate: 0,
+        effectiveHashRateMhs: 0,
         explanation: processError
           ? `GPU mining is unavailable: ${processError}`
           : code === 0
@@ -255,6 +263,7 @@ export class GpuMinerProcess {
 
   async setRequestedBackend(requestedBackend: RequestedBackend) {
     if (this.child) await this.stop();
+    this.lastRateSampleAt = undefined;
     const probe = probeGpu();
     this.status = {
       ...this.status,
@@ -265,6 +274,8 @@ export class GpuMinerProcess {
       active: false,
       backend: "disabled",
       processCount: 0,
+      measuredHashRate: 0,
+      effectiveHashRateMhs: 0,
       explanation:
         requestedBackend === "disabled"
           ? "GPU process mining is disabled; local worker threads remain active."
@@ -278,6 +289,16 @@ export class GpuMinerProcess {
   }
 
   snapshot(): GpuMiningStatus {
+    if (
+      this.lastRateSampleAt === undefined
+      || Date.now() - this.lastRateSampleAt > 10_000
+    ) {
+      return {
+        ...this.status,
+        measuredHashRate: 0,
+        effectiveHashRateMhs: 0,
+      };
+    }
     return { ...this.status };
   }
 
@@ -298,6 +319,8 @@ export class GpuMinerProcess {
       active: false,
       backend: "disabled",
       processCount: 0,
+      measuredHashRate: 0,
+      effectiveHashRateMhs: 0,
       explanation: "GPU miner process stopped.",
     };
   }
@@ -305,9 +328,7 @@ export class GpuMinerProcess {
 
 export const gpuMiner = new GpuMinerProcess(Number(process.env.MINER_POOL_PORT ?? 9000));
 
-export function effectiveRelayHashRateMhs(): number {
+export function reportedProcessHashRateMhs(): number {
   const reported = gpuMiner.snapshot().effectiveHashRateMhs;
-  return Number.isFinite(reported)
-    ? Math.max(MINIMUM_EFFECTIVE_RELAY_RATE_MHS, reported)
-    : MINIMUM_EFFECTIVE_RELAY_RATE_MHS;
+  return Number.isFinite(reported) ? Math.max(0, reported) : 0;
 }

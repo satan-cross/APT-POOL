@@ -57,8 +57,8 @@ export function runMnemonicFixture(wordCount: MnemonicWordCount = 24): MnemonicF
       detail("secp256k1 public key", publicKey),
       detail("Public-key fingerprint", publicKeyFingerprint),
       detail(
-        "Mnemonic recovery check",
-        "Not performed; a public key does not contain the mnemonic",
+        "Seed recovery",
+        "Not attempted. This verifies only a fresh lab phrase and its public derivation; no wallet seed is tested or recovered.",
       ),
     ],
     evidence: [

@@ -7,7 +7,7 @@ import {
   verify,
 } from "node:crypto";
 import { dnsPlane } from "./dns-plane";
-import { effectiveRelayHashRateMhs } from "./gpu-miner-process";
+import { reportedProcessHashRateMhs } from "./gpu-miner-process";
 import { MinerPool, minerPool, type MinerDifficulty } from "./miner-pool";
 import { runMnemonicFixture, type MnemonicWordCount } from "./mnemonic-fixture";
 import { runSafeWorkload } from "./safe-workload-runner";
@@ -65,7 +65,7 @@ const detail = (label: string, value: string): Detail => ({ label, value });
 function demoMiningTelemetry(pool: MinerPool, workloadId: string) {
   return {
     ...pool.liveTelemetry(workloadId),
-    effectiveHashRateMhs: effectiveRelayHashRateMhs(),
+    effectiveHashRateMhs: reportedProcessHashRateMhs(),
   };
 }
 
@@ -273,11 +273,11 @@ export async function runCommandCenterDemo(
     details.push(detail("Live miner", liveMining.lastMiner || "—"));
     details.push(detail("Hashes processed", liveMining.hashes.toLocaleString()));
     details.push(detail("Measured hash rate", `${liveMining.hashRate.toLocaleString()} H/s`));
-    details.push(detail("Effective relay rate", `${liveMining.effectiveHashRateMhs.toLocaleString()} MH/s`));
+    details.push(detail("Miner process rate", `${liveMining.effectiveHashRateMhs.toLocaleString()} MH/s`));
     evidence.push(`accepted_miner_hash=${liveMining.lastHash || "none"}`);
     evidence.push(`hashes=${liveMining.hashes}`);
     evidence.push(`hash_rate=${liveMining.hashRate}`);
-    evidence.push(`effective_relay_hash_rate_mhs=${liveMining.effectiveHashRateMhs}`);
+    evidence.push(`process_measured_hash_rate_mhs=${liveMining.effectiveHashRateMhs}`);
   }
   let executionEvidence: WorkloadEvidenceRecord;
   let evidenceValidation: { accepted: boolean; reason?: string };
