@@ -23,7 +23,7 @@ export interface MiningTelemetry {
     hashes: number;
     /** Measured hashes per second for the selected workload */
     hashRate: number;
-    /** Relay-scale effective rate in MH/s for demo telemetry; not physical hardware throughput */
+    /** Measured local miner-process hash rate in MH/s; zero when unavailable or stale */
     effectiveHashRateMhs: number;
     workloadShares: number;
     lastHash: string;
