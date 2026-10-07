@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/htdocs-console/"
+title = "HTDOCS Safe Preview"
+description = "A standalone, safe visual preview of the uploaded htdocs task console. It shows approved local security-training tasks only and does not execute the archived PHP application or accept payments, secrets, or external targets."
+version = "1.0.0"
+id = "artifacts/htdocs-preview"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/htdocs-console/" ]
+localPort = 20928
+
+[services.development]
+run = "pnpm --filter @workspace/htdocs-preview run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/htdocs-preview", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/htdocs-preview/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20928"
+BASE_PATH = "/htdocs-console/"

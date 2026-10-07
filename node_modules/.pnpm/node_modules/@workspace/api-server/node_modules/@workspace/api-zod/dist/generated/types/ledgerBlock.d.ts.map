@@ -1,0 +1,1 @@
+{"version":3,"file":"ledgerBlock.d.ts","sourceRoot":"","sources":["../../../src/generated/types/ledgerBlock.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,WAAW;IAC1B,MAAM,EAAE,MAAM,CAAC;IACf,IAAI,EAAE,MAAM,CAAC;IACb,QAAQ,EAAE,MAAM,CAAC;IACjB,IAAI,EAAE,MAAM,CAAC;IACb,KAAK,EAAE,MAAM,CAAC;IACd,KAAK,EAAE,MAAM,CAAC;IACd,SAAS,EAAE,IAAI,CAAC;CACjB"}
