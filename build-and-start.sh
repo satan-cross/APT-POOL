@@ -23,7 +23,7 @@ PORT="$API_PORT" BASE_PATH="$BASE_PATH" pnpm run build
 
 PORT="$API_PORT" node --enable-source-maps artifacts/api-server/dist/index.mjs &
 api_pid=$!
-PORT="$WEB_PORT" BASE_PATH="$BASE_PATH" pnpm --filter @workspace/security-command-center run serve -- --port "$WEB_PORT" --strictPort &
+PORT="$WEB_PORT" BASE_PATH="$BASE_PATH" pnpm --filter @workspace/security-command-center run serve &
 web_pid=$!
 
 cleanup() {
