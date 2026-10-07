@@ -1,0 +1,1 @@
+{"version":3,"file":"dnsMigrationInput.d.ts","sourceRoot":"","sources":["../../../src/generated/types/dnsMigrationInput.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,2BAA2B,EAAE,MAAM,+BAA+B,CAAC;AACjF,OAAO,KAAK,EAAE,yBAAyB,EAAE,MAAM,6BAA6B,CAAC;AAE7E,MAAM,WAAW,iBAAiB;IAChC,4CAA4C;IAC5C,QAAQ,EAAE,yBAAyB,CAAC;IACpC,6EAA6E;IAC7E,UAAU,CAAC,EAAE,2BAA2B,CAAC;CAC1C"}
